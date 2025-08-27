@@ -1,0 +1,42 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Build output
+*.out
+
+# Go build cache and intermediate files
+*.o
+*.a
+*.lo
+*.la
+*.lai
+*.gox
+
+# Coverage files
+*.cover
+*.coverprofile
+
+# Logs
+*.log
+
+# Dependency directories (if you vendor deps)
+vendor/
+
+# IDE/editor settings (optional, add what you use)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
