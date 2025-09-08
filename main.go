@@ -39,14 +39,30 @@ func main() {
 	accessToken := getOrCacheAccessToken()
 	// fmt.Println("Access Token:", accessToken)
 
-	subreddit := "soccer" // replace with your subreddit
-	flair := "Media"      // replace with your flair
-	posts := getPostsWithFlair(subreddit, flair, accessToken)
-	// for _, post := range posts {
-	// 	fmt.Printf("[%s](%s)\n", post.Title, post.Permalink)
-	// }
-	// for each post, print and format them in a way that becomes a clickable link in bash. the post.Title should display as the text, with the post.Permalink as the URL
-	fmt.Printf("Posts: %v\n", posts)
+	// create an object that holds a list of subreddit and search_query pairs
+	queriesFile, err := os.Open("assets/subreddit_queries.json")
+	if err != nil {
+		fmt.Println("Error opening queries file:", err)
+		return
+	}
+	defer queriesFile.Close()
+
+	var queries []struct {
+		Subreddit   string `json:"subreddit"`
+		SearchQuery string `json:"search_query"`
+	}
+	byteValue, _ := ioutil.ReadAll(queriesFile)
+	json.Unmarshal(byteValue, &queries)
+
+	var posts []Post
+
+	for _, query := range queries {
+		subreddit := query.Subreddit
+		flair := strings.TrimPrefix(query.SearchQuery, "flair_name:")
+		flair = strings.Trim(flair, "\"")
+		fmt.Printf("Fetching posts from r/%s with flair '%s'\n", subreddit, flair)
+		posts = append(posts, getPostsWithFlair(subreddit, flair, accessToken)...)
+	}
 
 	for _, post := range posts {
 		// separate each of the posts on to a newline
@@ -56,6 +72,7 @@ func main() {
 
 // getPostsWithFlair fetches recent posts from a subreddit with a specific flair
 func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
+
 	userAgent := os.Getenv("USER_AGENT")
 	token := strings.TrimSpace(accessToken)
 	url := fmt.Sprintf("https://oauth.reddit.com/r/%s/new.json?q=flair_name%%3A\"%s\"&restrict_sr=on&limit=20", subreddit, flair)

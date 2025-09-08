@@ -1,0 +1,10 @@
+[
+    {
+        "subreddit": "soccer",
+        "search_query": "flair_name:Media"
+    },
+    {
+        "subreddit": "nfl",
+        "search_query": "flair_name:Highlight"
+    }
+]
