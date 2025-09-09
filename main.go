@@ -21,11 +21,12 @@ type TokenCache struct {
 }
 
 type Post struct {
-	Title     string `json:"title"`
-	Flair     string `json:"link_flair_text"`
-	Permalink string `json:"permalink"`
-	Ups       int    `json:"ups"`
-	IsVideo   bool   `json:"is_video"`
+	Title      string  `json:"title"`
+	Flair      string  `json:"link_flair_text"`
+	Permalink  string  `json:"permalink"`
+	Ups        int     `json:"ups"`
+	IsVideo    bool    `json:"is_video"`
+	CreatedUTC float64 `json:"created_utc"`
 }
 
 func main() {
@@ -75,7 +76,7 @@ func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
 
 	userAgent := os.Getenv("USER_AGENT")
 	token := strings.TrimSpace(accessToken)
-	url := fmt.Sprintf("https://oauth.reddit.com/r/%s/new.json?q=flair_name%%3A\"%s\"&restrict_sr=on&limit=20", subreddit, flair)
+	url := fmt.Sprintf("https://oauth.reddit.com/r/%s/new.json?q=flair_name%%3A\"%s\"&restrict_sr=on&limit=100", subreddit, flair)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		fmt.Println("Error creating request:", err)
@@ -115,14 +116,17 @@ func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
 	}
 
 	var results []Post
+	now := float64(time.Now().Unix())
+	oneDayAgo := now - 86400
 	for _, child := range listing.Data.Children {
-		if child.Data.Flair == flair && child.Data.IsVideo {
+		if child.Data.Flair == flair && child.Data.IsVideo && child.Data.CreatedUTC >= oneDayAgo {
 			results = append(results, Post{
-				Title:     child.Data.Title,
-				Flair:     child.Data.Flair,
-				Permalink: child.Data.Permalink,
-				Ups:       child.Data.Ups,
-				IsVideo:   child.Data.IsVideo,
+				Title:      child.Data.Title,
+				Flair:      child.Data.Flair,
+				Permalink:  child.Data.Permalink,
+				Ups:        child.Data.Ups,
+				IsVideo:    child.Data.IsVideo,
+				CreatedUTC: child.Data.CreatedUTC,
 			})
 		}
 	}
