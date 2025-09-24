@@ -6,5 +6,13 @@
     {
         "subreddit": "nfl",
         "search_query": "flair_name:Highlight"
+    },
+    {
+        "subreddit": "nba",
+        "search_query": ""
+    },
+    {
+        "subreddit": "baseball",
+        "search_query": ""
     }
 ]

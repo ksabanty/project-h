@@ -120,6 +120,10 @@ func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
 	oneDayAgo := now - 86400
 	for _, child := range listing.Data.Children {
 		if child.Data.Flair == flair && child.Data.IsVideo && child.Data.CreatedUTC >= oneDayAgo {
+			// For r/baseball and r/nba, only include posts with '[Highlight]' in the title
+			if (subreddit == "baseball" || subreddit == "nba") && !strings.Contains(child.Data.Title, "[Highlight]") {
+				continue
+			}
 			results = append(results, Post{
 				Title:      child.Data.Title,
 				Flair:      child.Data.Flair,
