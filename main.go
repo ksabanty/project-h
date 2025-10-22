@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+    "github.com/pterm/pterm"
 	"github.com/joho/godotenv"
 )
 
@@ -29,11 +30,19 @@ type Post struct {
 	CreatedUTC float64 `json:"created_utc"`
 }
 
+
+
+// pterm line output settings
+var primary = pterm.NewStyle(pterm.FgLightGreen)
+var errStyle = pterm.NewStyle(pterm.FgLightRed)
+var urlStyle = pterm.NewStyle(pterm.FgLightCyan, pterm.Italic)
+
+
 func main() {
 	// Load .env file
 	err := godotenv.Load(".env")
 	if err != nil {
-		fmt.Println("Error loading .env file:", err)
+		errStyle.Println("Error loading .env file:", err)
 		return
 	}
 
@@ -43,7 +52,7 @@ func main() {
 	// create an object that holds a list of subreddit and search_query pairs
 	queriesFile, err := os.Open("assets/subreddit_queries.json")
 	if err != nil {
-		fmt.Println("Error opening queries file:", err)
+		errStyle.Println("Error opening queries file:", err)
 		return
 	}
 	defer queriesFile.Close()
@@ -61,13 +70,13 @@ func main() {
 		subreddit := query.Subreddit
 		flair := strings.TrimPrefix(query.SearchQuery, "flair_name:")
 		flair = strings.Trim(flair, "\"")
-		fmt.Printf("Fetching posts from r/%s with flair '%s'\n", subreddit, flair)
+		primary.Printf("Fetching posts from r/%s\n", subreddit)
 		posts = append(posts, getPostsWithFlair(subreddit, flair, accessToken)...)
 	}
 
 	for _, post := range posts {
 		// separate each of the posts on to a newline
-		fmt.Printf("\033]8;;https://www.reddit.com%s\033\\%s\033]8;;\033\\\n", post.Permalink, post.Title)
+		urlStyle.Printf("\033]8;;https://www.reddit.com%s\033\\%s\033]8;;\033\\\n", post.Permalink, fmt.Sprintf("%.100s", post.Title))
 	}
 }
 
@@ -76,10 +85,10 @@ func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
 
 	userAgent := os.Getenv("USER_AGENT")
 	token := strings.TrimSpace(accessToken)
-	url := fmt.Sprintf("https://oauth.reddit.com/r/%s/new.json?q=flair_name%%3A\"%s\"&restrict_sr=on&limit=100", subreddit, flair)
+	url := fmt.Sprintf("https://oauth.reddit.com/r/%s/new.json?q=flair_name%%3A\"%s\"&restrict_sr=on&limit=75", subreddit, flair)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Println("Error creating request:", err)
+		errStyle.Println("Error creating request:", err)
 		return nil
 	}
 	req.Header.Set("Authorization", "bearer "+token)
@@ -88,14 +97,14 @@ func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error getting response:", err)
+		errStyle.Println("Error getting response:", err)
 		return nil
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading response body:", err)
+		errStyle.Println("Error reading response body:", err)
 		return nil
 	}
 
@@ -111,7 +120,7 @@ func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
 	// fmt.Println("Response:", string(body))
 	err = json.Unmarshal(body, &listing)
 	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
+		errStyle.Println("Error parsing JSON:", err)
 		return nil
 	}
 
@@ -165,7 +174,7 @@ func getOrCacheAccessToken() string {
 
 	req, err := http.NewRequest("POST", url, bytes.NewBufferString(data))
 	if err != nil {
-		fmt.Println("Error creating request:", err)
+		errStyle.Println("Error creating request:", err)
 		return ""
 	}
 	req.SetBasicAuth(clientID, clientSecret)
@@ -175,14 +184,14 @@ func getOrCacheAccessToken() string {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error getting response:", err)
+		errStyle.Println("Error getting response:", err)
 		return ""
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading response body:", err)
+		errStyle.Println("Error reading response body:", err)
 		return ""
 	}
 
@@ -194,7 +203,7 @@ func getOrCacheAccessToken() string {
 	}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		fmt.Println("Error parsing token JSON:", err)
+		errStyle.Println("Error parsing token JSON:", err)
 		return ""
 	}
 
