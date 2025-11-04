@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-    "github.com/pterm/pterm"
 	"github.com/joho/godotenv"
+	"github.com/pterm/pterm"
 )
 
 // TokenCache holds the access token and its expiry
@@ -28,15 +28,13 @@ type Post struct {
 	Ups        int     `json:"ups"`
 	IsVideo    bool    `json:"is_video"`
 	CreatedUTC float64 `json:"created_utc"`
+	Domain     string  `json:"domain"`
 }
-
-
 
 // pterm line output settings
 var primary = pterm.NewStyle(pterm.FgLightGreen)
 var errStyle = pterm.NewStyle(pterm.FgLightRed)
 var urlStyle = pterm.NewStyle(pterm.FgLightCyan, pterm.Italic)
-
 
 func main() {
 	// Load .env file
@@ -85,7 +83,7 @@ func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
 
 	userAgent := os.Getenv("USER_AGENT")
 	token := strings.TrimSpace(accessToken)
-	url := fmt.Sprintf("https://oauth.reddit.com/r/%s/new.json?q=flair_name%%3A\"%s\"&restrict_sr=on&limit=75", subreddit, flair)
+	url := fmt.Sprintf("https://oauth.reddit.com/r/%s/new.json?q=flair_name%%3A\"%s\"&restrict_sr=on&limit=50", subreddit, flair)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		errStyle.Println("Error creating request:", err)
@@ -128,9 +126,18 @@ func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
 	now := float64(time.Now().Unix())
 	oneDayAgo := now - 86400
 	for _, child := range listing.Data.Children {
-		if child.Data.Flair == flair && child.Data.IsVideo && child.Data.CreatedUTC >= oneDayAgo {
-			// For r/baseball and r/nba, only include posts with '[Highlight]' in the title
-			if (subreddit == "baseball" || subreddit == "nba") && !strings.Contains(child.Data.Title, "[Highlight]") {
+		// Check if post is a video using multiple criteria
+		isVideoPost := child.Data.IsVideo ||
+			strings.Contains(child.Data.Domain, "v.redd.it") ||
+			strings.Contains(child.Data.Domain, "streamable.com") ||
+			strings.Contains(child.Data.Domain, "youtube.com") ||
+			strings.Contains(child.Data.Domain, "youtu.be") ||
+			strings.Contains(child.Data.Domain, "twitter.com") ||
+			strings.Contains(child.Data.Domain, "x.com")
+
+		if child.Data.Flair == flair && isVideoPost && child.Data.CreatedUTC >= oneDayAgo {
+			// For r/baseball, only include posts with '[Highlight]' in the title
+			if (subreddit == "baseball") && !strings.Contains(child.Data.Title, "[Highlight]") {
 				continue
 			}
 			results = append(results, Post{
@@ -140,6 +147,7 @@ func getPostsWithFlair(subreddit, flair, accessToken string) []Post {
 				Ups:        child.Data.Ups,
 				IsVideo:    child.Data.IsVideo,
 				CreatedUTC: child.Data.CreatedUTC,
+				Domain:     child.Data.Domain,
 			})
 		}
 	}
